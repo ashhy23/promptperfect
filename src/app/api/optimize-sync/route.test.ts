@@ -34,7 +34,12 @@ describe("/api/optimize-sync", () => {
   });
 
   it("OPTIONS returns CORS headers for default allowlist", async () => {
-    const res = await OPTIONS(asNextRequest({ method: "OPTIONS" }));
+    const res = await OPTIONS(
+      asNextRequest({
+        method: "OPTIONS",
+        headers: { Origin: "http://localhost:3000" },
+      }),
+    );
     expect(res.status).toBe(204);
     expect(res.headers.get("Access-Control-Allow-Origin")).toBe(
       "http://localhost:3000",
@@ -63,7 +68,10 @@ describe("/api/optimize-sync", () => {
   it("POST returns 400 when prompt and text are missing", async () => {
     const req = asNextRequest({
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Origin: "http://localhost:3000",
+      },
       body: JSON.stringify({ mode: "better", provider: "gemini" }),
     });
     const res = await POST(req);
@@ -78,7 +86,10 @@ describe("/api/optimize-sync", () => {
   it("POST returns optimized payload for valid body", async () => {
     const req = asNextRequest({
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Origin: "http://localhost:3000",
+      },
       body: JSON.stringify({
         prompt: "Hello world",
         mode: "better",
