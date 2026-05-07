@@ -90,6 +90,10 @@ export default function SignUpPage() {
         );
         return;
       }
+      if (data.verificationRequired) {
+        setVerificationSent(true);
+        return;
+      }
       const user = data.user as {
         id: string;
         name: string | null;

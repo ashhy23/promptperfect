@@ -276,7 +276,7 @@ export async function GET(request: Request) {
     // linked optimize_session_id (or the history row id used as session key in
     // older rows). optimization_logs.provider is NOT NULL so has full coverage.
     const rowsMissingProvider = histRows.filter((r) => !r.provider);
-    let sessionProviderMap: Record<string, string> = {};
+    const sessionProviderMap: Record<string, string> = {};
 
     if (rowsMissingProvider.length > 0 && admin) {
       const sessionIds = new Set<string>();

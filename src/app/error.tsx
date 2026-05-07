@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect } from 'react'
 
 // TODO: replace console.error with a structured logger hook (e.g. useLogger)
@@ -27,12 +28,12 @@ export default function Error({
         >
           Try again
         </button>
-        <a
+        <Link
           href="/"
           className="rounded-[10px] border border-[#2a2a2a] bg-[#111] px-4 py-2 text-sm font-semibold text-[#ECECEC] transition-colors hover:border-[#3a3a3a] hover:bg-[#1a1a1a]"
         >
           Go home
-        </a>
+        </Link>
       </div>
     </div>
   )
