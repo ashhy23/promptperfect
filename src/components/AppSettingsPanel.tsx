@@ -20,6 +20,7 @@ function loadStoredKey(p: Provider): string {
     );
     return stored[p] || '';
   } catch {
+    // swallow: JSON.parse failed on stored key blob — return empty string
     return '';
   }
 }
@@ -100,6 +101,7 @@ export function AppSettingsPanel({
           stored[localProvider] = localKey.trim();
           localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
         } catch {
+          // swallow: JSON.parse failed on existing key blob — overwrite with single-provider object
           localStorage.setItem(
             STORAGE_KEY,
             JSON.stringify({ [localProvider]: localKey.trim() }),

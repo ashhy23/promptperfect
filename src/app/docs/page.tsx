@@ -417,8 +417,9 @@ print(data["changes"])`}</CodeBlock>
               repo. To load locally: Chrome →{' '}
               <code className="rounded bg-zinc-900 px-1 py-0.5">chrome://extensions</code> → Developer
               mode → <strong className="text-zinc-300">Load unpacked</strong> → select that folder. Set
-              the popup <strong className="text-zinc-300">API URL</strong> to your deployment or{' '}
-              <code className="rounded bg-zinc-900 px-1 py-0.5">http://localhost:3000</code>.
+              the popup <strong className="text-zinc-300">API URL</strong> to{' '}
+              <code className="rounded bg-zinc-900 px-1 py-0.5">{BASE}</code>{' '}
+              or your local dev server URL.
             </p>
           </section>
         </div>

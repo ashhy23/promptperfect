@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
 /** Page routes that require a Supabase session (userId from cookie JWT only). */
-const PROTECTED = ['/app', '/library', '/history', '/profile', '/control-room'];
+const PROTECTED = ['/library', '/history', '/profile', '/control-room'];
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

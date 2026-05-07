@@ -50,6 +50,7 @@ import {
   stripPromptScoreMarkers,
 } from '@/lib/delimiter';
 import { UserAccountMenu } from '@/components/UserAccountMenu';
+import { ClientErrorBoundary } from '@/components/ClientErrorBoundary';
 
 const STORAGE_KEY = 'promptperfect:apikey';
 
@@ -277,9 +278,14 @@ export default function AppPage() {
       setHydrated(true);
     };
 
-    void resolveAuthUserAndSession(client).then(({ user }) => {
-      applyAuthUser(user);
-    });
+    void resolveAuthUserAndSession(client)
+      .then(({ user }) => {
+        applyAuthUser(user);
+      })
+      .catch(() => {
+        setUser(null);
+        setHydrated(true);
+      });
 
     const {
       data: { subscription },
@@ -733,6 +739,8 @@ export default function AppPage() {
           </div>
         )}
 
+        {/* Optimize area — wrapped in ClientErrorBoundary for resilient UI recovery */}
+        <ClientErrorBoundary>
         {/* Two-column textarea section: row on large screens, normal flow, no overlap */}
         <div className="flex w-full flex-col gap-5 px-6 pb-0 pt-6 lg:flex-row lg:items-start">
           <div className="min-w-0 flex-1">
@@ -829,6 +837,7 @@ export default function AppPage() {
             optimized={getOptimizedPromptText(completion)}
           />
         </div>
+        </ClientErrorBoundary>
       </main>
 
       {user && (

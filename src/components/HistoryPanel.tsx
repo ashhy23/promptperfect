@@ -49,6 +49,7 @@ function formatTime(iso: string): string {
       minute: '2-digit',
     });
   } catch {
+    // swallow: invalid ISO string or Intl unavailable — return raw value
     return iso;
   }
 }
@@ -65,6 +66,7 @@ export function HistoryPanel({
   const [rows, setRows] = useState<OptimizationHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const uid = userId?.trim();
@@ -241,16 +243,26 @@ export function HistoryPanel({
       const client = createSupabaseBrowserClient();
       if (!client) return;
       setDeletingId(itemId);
+      setDeleteError(null);
       try {
         const headers = await getPromptPerfectAuthHeaders(client);
-        if (!headers) return;
+        if (!headers) {
+          setDeleteError('Authentication error. Please refresh and try again.');
+          return;
+        }
         const res = await fetch(
           `/api/history?id=${encodeURIComponent(itemId)}`,
           { method: 'DELETE', headers },
         );
-        if (!res.ok) return;
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({})) as { error?: string };
+          setDeleteError(body.error ?? 'Failed to delete. Please try again.');
+          return;
+        }
         onDeleted?.(itemId);
         await load();
+      } catch {
+        setDeleteError('Network error. Please try again.');
       } finally {
         setDeletingId(null);
       }
@@ -277,6 +289,18 @@ export function HistoryPanel({
           </button>
         ) : null}
       </div>
+      {deleteError && (
+        <div className="shrink-0 border-t border-rose-900/40 bg-rose-950/30 px-3 py-2">
+          <p className="text-[11px] text-rose-400">{deleteError}</p>
+          <button
+            type="button"
+            onClick={() => setDeleteError(null)}
+            className="mt-0.5 text-[10px] text-rose-500/70 underline hover:text-rose-400"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
       <div className="min-h-0 flex-1 overflow-y-auto pp-history-scroll">
         {loading ? (
           <p className="px-3 py-2 text-[13px] text-[#666]">Loading…</p>

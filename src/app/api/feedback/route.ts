@@ -19,14 +19,7 @@ export async function POST(req: Request) {
   const identity = await resolveIdentity(req);
   const authUserId = identity?.userId ?? null;
 
-  const {
-    mode,
-    provider,
-    inputLength,
-    outputLength,
-    feedback,
-    sessionId,
-  } = (await req.json()) as {
+  let body: {
     mode?: string;
     provider?: string;
     inputLength?: number;
@@ -34,6 +27,19 @@ export async function POST(req: Request) {
     feedback?: string;
     sessionId?: string;
   };
+  try {
+    body = (await req.json()) as typeof body;
+  } catch {
+    return Response.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+  const {
+    mode,
+    provider,
+    inputLength,
+    outputLength,
+    feedback,
+    sessionId,
+  } = body;
 
   if (!mode || typeof mode !== 'string') {
     return Response.json({ error: 'mode is required' }, { status: 400 });

@@ -92,11 +92,17 @@ Theme: `#050505` backgrounds in popup, **`#4552FF`** accent — matches the web 
 
 ---
 
-## Testing
+## Smoke test (Week 6 audit)
 
-1. Set **API URL** in the popup → **Save** → confirm **✅ Connected**  
-2. Open ChatGPT / Gmail → focus a text area → click **✨ Optimize**  
-3. Confirm spinner while loading, toast + green flash on success  
+Run through these steps after every `Load unpacked` reload.
+
+1. **Load unpacked** — `chrome://extensions` → Developer mode → Load unpacked → select `extension/` (the folder containing `manifest.json`). Extension card appears with no errors.
+2. **Settings check** — Click the extension icon → expand **⚙ Settings** → confirm API URL defaults to `https://promptperfect.vercel.app` → **✅ Connected** appears. Optionally paste a BYOK key and Save.
+3. **Popup optimize** — In the popup, paste any prompt into the **Prompt** textarea → **✨ Optimize** button enables → click it → optimized result appears in the **Result** box within 10 s.
+4. **Stateless check** — Close the popup, reopen it → textarea is empty, result is gone, no history panel visible.
+5. **On-page button** — Focus any text field on ChatGPT / Gmail / Notion → **✨ Optimize** button appears below it → click → spinner shows → result replaces the field text + green toast.
+
+## Testing
 
 ## Troubleshooting
 
@@ -114,5 +120,5 @@ Theme: `#050505` backgrounds in popup, **`#4552FF`** accent — matches the web 
 | `background/service-worker.js` | Calls `/api/optimize-sync` using stored URL / mode / API key |
 | `content/universal.js` | Injects button, spinner, toasts, success flash |
 | `styles/button.css` | Button, spinner, toast styles |
-| `popup/` | Settings UI, version, links to app & docs |
+| `popup/` | Optimize-in-popup UI (prompt → result, stateless) + collapsed settings panel |
 | `icons/` | Toolbar / store icons (**Beagle / PromptPerfect branding**) |

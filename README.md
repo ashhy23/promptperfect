@@ -95,14 +95,27 @@ Follow these steps to run PromptPerfect locally on your machine.
 
     Create a `.env.local` file in the root directory and add your API keys:
 
-    ```env
-    # Required for default provider
-    GOOGLE_API_KEY=your_gemini_api_key_here
+    Copy `.env.example` to `.env.local` and fill in your values:
 
-    # Optional: For analytics (Supabase)
-    NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+    ```bash
+    cp .env.example .env.local
     ```
+
+    Key variables:
+
+    | Variable | Required | Description |
+    |---|---|---|
+    | `GOOGLE_GENERATIVE_AI_API_KEY` | Yes | Gemini key — [Google AI Studio](https://aistudio.google.com/app/apikey) |
+    | `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
+    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anon key |
+    | `SUPABASE_SERVICE_ROLE_KEY` | Yes | Supabase service-role key (server-side only) |
+    | `NEXT_PUBLIC_SITE_URL` | Yes (prod) | Deployment URL for OAuth redirects |
+    | `ALLOWED_ORIGINS` | Yes | CORS origins for `/api/optimize-sync` |
+    | `OPENAI_API_KEY` | No | OpenAI key (enables GPT provider) |
+    | `ANTHROPIC_API_KEY` | No | Anthropic key (enables Claude provider) |
+    | `DATABASE_URL` | No | Postgres URL for local Supabase migrations |
+
+    See `.env.example` for comments and defaults.
 
 4.  **Run the development server:**
 
@@ -129,7 +142,7 @@ See `examples/README.md` for full documentation and advanced use cases.
 
 You can deploy your own instance of PromptPerfect to Vercel with a single click:
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Beagle-AI-automation/promptperfect&env=GOOGLE_API_KEY&envDescription=Get%20a%20Gemini%20API%20key%20from%20ai.google.dev)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Beagle-AI-automation/promptperfect&env=GOOGLE_GENERATIVE_AI_API_KEY,NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY,SUPABASE_SERVICE_ROLE_KEY,NEXT_PUBLIC_SITE_URL&envDescription=See%20.env.example%20for%20details)
 
 ## Contributing
 

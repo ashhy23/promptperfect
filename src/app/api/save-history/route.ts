@@ -41,6 +41,7 @@ export async function POST(request: Request) {
   const mode = typeof b.mode === 'string' ? b.mode : 'better';
   const explanation = typeof b.explanation === 'string' ? b.explanation : '';
   const provider = typeof b.provider === 'string' ? b.provider : null;
+  const optimize_session_id = typeof b.optimize_session_id === 'string' ? b.optimize_session_id : null;
   const user_id = user.id;
 
   if (!session_id || !prompt_original || !prompt_optimized) {
@@ -80,6 +81,7 @@ export async function POST(request: Request) {
   };
   row.user_id = user_id;
   if (provider) row.provider = provider;
+  if (optimize_session_id) row.optimize_session_id = optimize_session_id;
 
   const { data, error } = await admin
     .from('pp_optimization_history')

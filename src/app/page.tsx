@@ -121,13 +121,6 @@ export default function Page() {
               <p className="mt-2 text-sm leading-relaxed text-zinc-400">
                 Optimize prompts where you already work—ChatGPT, Gmail, and more.
               </p>
-              <div
-                className="mt-4 flex aspect-video w-full items-center justify-center rounded-lg border border-dashed border-zinc-700 bg-zinc-950/80 text-center text-xs text-zinc-500"
-                role="img"
-                aria-label="Extension screenshot placeholder"
-              >
-                Screenshot placeholder
-              </div>
               <Link
                 href="/docs#chrome-extension"
                 className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#4552FF] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:opacity-90"
