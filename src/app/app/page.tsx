@@ -23,6 +23,7 @@ import { StatsBar } from '@/components/StatsBar';
 import { AppSettingsPanel } from '@/components/AppSettingsPanel';
 import { DemoTokenBar } from '@/components/DemoTokenBar';
 import { DemoLimitModal } from '@/components/DemoLimitModal';
+import { SignInRequiredModal } from '@/components/SignInRequiredModal';
 import {
   getGuestId,
   getGuestCount,
@@ -134,6 +135,7 @@ export default function AppPage() {
     useState<OptimizationHistoryItem | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [showLimitModal, setShowLimitModal] = useState(false);
+  const [showSignInModal, setShowSignInModal] = useState(false);
   const [guestUsageVersion, setGuestUsageVersion] = useState(0);
   const [usageGateError, setUsageGateError] = useState<string | null>(null);
   const optimizeContextRef = useRef({ mode: 'better' as OptimizationMode });
@@ -703,12 +705,13 @@ export default function AppPage() {
               </>
             ) : (
               <>
-                <Link
-                  href="/library"
+                <button
+                  type="button"
+                  onClick={() => setShowSignInModal(true)}
                   className="rounded-lg border border-transparent px-3 py-1.5 text-sm text-[#888] transition-all duration-200 ease-out hover:border-[#2a2a2a] hover:bg-[#111] hover:text-[#ECECEC]"
                 >
                   Library
-                </Link>
+                </button>
                 <Link
                   href="/login"
                   className="rounded-lg border border-transparent px-3 py-1.5 text-sm text-[#888] transition-all duration-200 ease-out hover:border-[#2a2a2a] hover:bg-[#111] hover:text-[#ECECEC]"
@@ -855,6 +858,12 @@ export default function AppPage() {
       <DemoLimitModal
         isOpen={showLimitModal}
         onClose={() => setShowLimitModal(false)}
+      />
+
+      <SignInRequiredModal
+        isOpen={showSignInModal}
+        onClose={() => setShowSignInModal(false)}
+        feature="the Library"
       />
 
       {user && (
