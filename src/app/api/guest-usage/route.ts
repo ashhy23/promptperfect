@@ -33,7 +33,12 @@ export async function POST(request: Request) {
 
   if (currentCount >= GUEST_LIMIT) {
     return NextResponse.json(
-      { error: 'Guest limit reached. Sign up for unlimited access.', limitReached: true },
+      {
+        error: 'Guest limit reached. Sign up for unlimited access.',
+        limitReached: true,
+        count: currentCount,
+        limit: GUEST_LIMIT,
+      },
       { status: 429 }
     )
   }
@@ -72,7 +77,8 @@ export async function GET(request: Request) {
   }
 
   if (!supabase) {
-    return NextResponse.json({ count: 0, limit: GUEST_LIMIT, remaining: GUEST_LIMIT })
+    // Signal to client that server tracking is unavailable — don't overwrite local count.
+    return NextResponse.json({ count: 0, limit: GUEST_LIMIT, remaining: GUEST_LIMIT, serverTracking: false })
   }
 
   const { data } = await supabase

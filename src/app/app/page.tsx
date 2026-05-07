@@ -25,6 +25,7 @@ import { DemoTokenBar } from '@/components/DemoTokenBar';
 import { DemoLimitModal } from '@/components/DemoLimitModal';
 import { SignInRequiredModal } from '@/components/SignInRequiredModal';
 import {
+  GUEST_TOKEN_LIMIT,
   getGuestId,
   getGuestCount,
   setGuestCount,
@@ -453,23 +454,23 @@ export default function AppPage() {
         const body = (await res.json().catch(() => ({}))) as {
           count?: number;
         };
+        // Sync local counter with server's confirmed count so the bar reflects reality.
         if (typeof body.count === 'number') {
           setGuestCount(body.count);
+        } else {
+          // 429 means limit is reached — ensure local state reflects that.
+          setGuestCount(GUEST_TOKEN_LIMIT);
         }
         setGuestUsageVersion((v) => v + 1);
         setShowLimitModal(true);
         return;
       }
 
-      if (!res.ok) {
-        setUsageGateError('Could not verify guest usage. Try again.');
-        return;
-      }
-
-      const data = (await res.json().catch(() => ({}))) as {
-        count?: number;
-        persisted?: boolean;
-      };
+      // For any server-side failure (503 = DB not configured, 500 = upsert error, etc.)
+      // fall through to optimistic local tracking so guests aren't blocked by infra issues.
+      const data = res.ok
+        ? ((await res.json().catch(() => ({}))) as { count?: number; persisted?: boolean })
+        : {};
 
       // Always increment locally by at least 1; use server count only when it's higher.
       // This prevents the counter from sticking at 1 if the server DB is unavailable.
