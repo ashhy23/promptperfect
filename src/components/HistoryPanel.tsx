@@ -89,14 +89,16 @@ export function HistoryPanel({
         // 2. Older history rows saved under this browser session (user_id was null before the bug-fix).
         const sessionRowsPromise: Promise<OptimizationHistoryItem[]> =
           client && browserSid
-            ? client
-                .from('pp_optimization_history')
-                .select(
-                  'id,session_id,optimize_session_id,prompt_original,prompt_optimized,mode,explanation,created_at',
-                )
-                .eq('session_id', browserSid)
-                .order('created_at', { ascending: false })
-                .limit(50)
+            ? Promise.resolve(
+                client
+                  .from('pp_optimization_history')
+                  .select(
+                    'id,session_id,optimize_session_id,prompt_original,prompt_optimized,mode,explanation,created_at',
+                  )
+                  .eq('session_id', browserSid)
+                  .order('created_at', { ascending: false })
+                  .limit(50),
+              )
                 .then(({ data }) => (data as OptimizationHistoryItem[]) ?? [])
                 .catch(() => [])
             : Promise.resolve([]);

@@ -68,10 +68,12 @@ export async function claimGuestHistoryAfterAuth(): Promise<void> {
       data: { user },
     } = await client.auth.getUser();
     if (user?.id) {
-      await client
-        .from('pp_optimization_history')
-        .update({ session_id: targetSessionId, user_id: user.id })
-        .eq('session_id', guestId)
+      await Promise.resolve(
+        client
+          .from('pp_optimization_history')
+          .update({ session_id: targetSessionId, user_id: user.id })
+          .eq('session_id', guestId),
+      )
         .then(() => null)
         .catch(() => null);
     }
