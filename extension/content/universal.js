@@ -180,8 +180,9 @@
           return;
         }
 
-        if (response && response.optimizedText != null && response.optimizedText !== '') {
-          setElementValue(target, response.optimizedText);
+        const optimizedText = response && (response.optimizedText ?? response.result ?? '');
+        if (optimizedText) {
+          setElementValue(target, optimizedText);
           flashButtonSuccess(btn);
           showNotification('Prompt optimized!', 'success');
         } else {
@@ -193,9 +194,9 @@
             ? err.message
             : 'Could not reach PromptPerfect API';
         if (/Could not establish|Receiving end|Extension context/i.test(msg)) {
-          showNotification('Could not reach PromptPerfect API. Reload the extension.', 'error');
+          showNotification('Extension error — try reloading the page.', 'error');
         } else {
-          showNotification('Could not reach PromptPerfect API', 'error');
+          showNotification(msg, 'error');
         }
       } finally {
         setButtonReady(btn);

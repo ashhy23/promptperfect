@@ -74,13 +74,18 @@ optimizeBtn.addEventListener('click', async () => {
 
   try {
     const response = await new Promise((resolve, reject) => {
-      chrome.runtime.sendMessage({ type: 'OPTIMIZE', text }, (res) => {
-        if (chrome.runtime.lastError) {
-          reject(new Error(chrome.runtime.lastError.message));
-        } else {
-          resolve(res);
-        }
-      });
+      // Pass the live dropdown value so the service worker uses it directly,
+      // regardless of what was last saved to storage.
+      chrome.runtime.sendMessage(
+        { type: 'OPTIMIZE', text, mode: modeEl.value },
+        (res) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else {
+            resolve(res);
+          }
+        },
+      );
     });
 
     if (!response) {

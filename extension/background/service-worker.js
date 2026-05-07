@@ -2,6 +2,7 @@
 
 const DEFAULT_API_URL = 'https://promptperfect.vercel.app';
 const DEFAULT_MODE = 'better';
+const FETCH_TIMEOUT_MS = 30_000;
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type !== 'OPTIMIZE') return false;
@@ -16,10 +17,16 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       typeof settings.apiUrl === 'string' && settings.apiUrl.trim()
         ? settings.apiUrl.trim().replace(/\/$/, '')
         : DEFAULT_API_URL;
+
+    // Prefer mode sent by the popup (live dropdown value) over the stored setting.
+    // Fall back to stored mode for content-script calls that don't send one.
     const mode =
-      typeof settings.mode === 'string' && settings.mode.trim()
-        ? settings.mode.trim()
-        : DEFAULT_MODE;
+      typeof message.mode === 'string' && message.mode.trim()
+        ? message.mode.trim()
+        : typeof settings.mode === 'string' && settings.mode.trim()
+          ? settings.mode.trim()
+          : DEFAULT_MODE;
+
     const apiKey =
       typeof settings.apiKey === 'string' ? settings.apiKey.trim() : '';
 
@@ -30,12 +37,17 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       headers.Authorization = `Bearer ${apiKey}`;
     }
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
     try {
       const res = await fetch(url, {
         method: 'POST',
         headers,
         body: JSON.stringify(body),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
       let data = {};
       try {
         data = await res.json();
@@ -52,9 +64,14 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       }
       return data;
     } catch (err) {
+      clearTimeout(timeoutId);
+      const isTimeout = err instanceof Error && err.name === 'AbortError';
       return {
-        error:
-          err instanceof Error ? err.message : 'Network error — check API URL',
+        error: isTimeout
+          ? 'Request timed out — check your API URL or connection'
+          : err instanceof Error
+            ? err.message
+            : 'Network error — check API URL',
       };
     }
   })()
