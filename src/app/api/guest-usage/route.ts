@@ -11,11 +11,13 @@ export async function POST(request: Request) {
     )
   }
 
-  const { guestId, mode, provider } = await request.json() as {
-    guestId?: string
-    mode?: string
-    provider?: string
+  let body: { guestId?: string; mode?: string; provider?: string };
+  try {
+    body = (await request.json()) as typeof body;
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
+  const { guestId, mode, provider } = body;
 
   if (!guestId) {
     return NextResponse.json({ error: 'Guest ID required' }, { status: 400 })
@@ -36,7 +38,7 @@ export async function POST(request: Request) {
     )
   }
 
-  await supabase
+  const { error: upsertError } = await supabase
     .from('guest_usage')
     .upsert(
       {
@@ -48,6 +50,10 @@ export async function POST(request: Request) {
       },
       { onConflict: 'guest_id' }
     )
+
+  if (upsertError) {
+    return NextResponse.json({ error: 'Failed to record usage' }, { status: 500 })
+  }
 
   return NextResponse.json({
     count: currentCount + 1,

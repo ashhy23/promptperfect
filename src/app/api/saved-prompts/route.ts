@@ -185,6 +185,13 @@ export async function POST(request: Request) {
     );
   }
 
+  if (!row) {
+    return NextResponse.json(
+      { error: 'Prompt was saved but could not be retrieved.', code: 'LIBRARY_ROW_MISSING' },
+      { status: 500 },
+    );
+  }
+
   return NextResponse.json({ prompt: row });
 }
 

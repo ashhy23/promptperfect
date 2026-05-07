@@ -247,11 +247,67 @@ export async function GET(request: Request) {
     .select('*', { count: 'exact', head: true })
     .eq('user_id', userId);
   if (!cntErr) optCount = count;
-  const { data: rows, error: rowsErr } = await db
+  // Try the full select first (includes optimize_session_id for provider lookup).
+  // Fall back to the legacy columns if the column doesn't exist yet in this DB.
+  type HistRow = { id: string; mode: string | null; provider: string | null; optimize_session_id?: string | null };
+  let histRows: HistRow[] | null = null;
+  const fullQuery = await db
     .from('pp_optimization_history')
-    .select('mode, provider')
+    .select('id, mode, provider, optimize_session_id')
     .eq('user_id', userId);
-  if (!rowsErr) optRows = rows;
+  if (!fullQuery.error && fullQuery.data) {
+    histRows = fullQuery.data as HistRow[];
+  } else if (
+    fullQuery.error &&
+    /optimize_session_id|schema cache|could not find/i.test(fullQuery.error.message)
+  ) {
+    // optimize_session_id column not yet in this DB — fall back to basic columns
+    const legacyQuery = await db
+      .from('pp_optimization_history')
+      .select('id, mode, provider')
+      .eq('user_id', userId);
+    if (!legacyQuery.error && legacyQuery.data) {
+      histRows = legacyQuery.data as HistRow[];
+    }
+  }
+
+  if (histRows) {
+    // For rows missing a provider, look it up from optimization_logs via the
+    // linked optimize_session_id (or the history row id used as session key in
+    // older rows). optimization_logs.provider is NOT NULL so has full coverage.
+    const rowsMissingProvider = histRows.filter((r) => !r.provider);
+    const sessionProviderMap: Record<string, string> = {};
+
+    if (rowsMissingProvider.length > 0 && admin) {
+      const sessionIds = new Set<string>();
+      for (const r of rowsMissingProvider) {
+        if (r.optimize_session_id) sessionIds.add(r.optimize_session_id);
+        if (r.id) sessionIds.add(r.id);
+      }
+      if (sessionIds.size > 0) {
+        const { data: logRows } = await admin
+          .from('optimization_logs')
+          .select('session_id, provider')
+          .in('session_id', [...sessionIds]);
+        if (logRows) {
+          for (const log of logRows) {
+            if (log.session_id && log.provider) {
+              sessionProviderMap[log.session_id as string] = log.provider as string;
+            }
+          }
+        }
+      }
+    }
+
+    optRows = histRows.map((r) => ({
+      mode: r.mode ?? null,
+      provider:
+        r.provider ??
+        (r.optimize_session_id ? sessionProviderMap[r.optimize_session_id] : undefined) ??
+        sessionProviderMap[r.id] ??
+        null,
+    }));
+  }
 
   const baseStats = computeStats(optRows);
   let thumbsUp = baseStats.thumbsUp;

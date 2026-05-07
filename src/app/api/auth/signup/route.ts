@@ -1,6 +1,5 @@
 import { validatePassword, validateEmail } from '@/lib/auth/validation'
 import { checkRateLimit } from '@/lib/auth/rateLimit'
-import { getEmailConfirmationRedirectUrl } from '@/lib/auth/oauthRedirect'
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import {

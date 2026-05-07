@@ -88,11 +88,16 @@ export default async function SharedOptimizationPage({
             {modeLabel}
           </span>
           <span className="text-sm text-zinc-500">
-            {new Date(optimization.created_at).toLocaleDateString(undefined, {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            })}
+            {(() => {
+              const d = new Date(optimization.created_at);
+              return !isNaN(d.getTime())
+                ? d.toLocaleDateString(undefined, {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })
+                : null;
+            })()}
           </span>
         </div>
 

@@ -38,10 +38,10 @@ import {
   readEnginePrefs,
 } from '@/lib/client/enginePrefsStorage';
 import {
-  clearPromptPerfectLocalAuth,
   persistEnginePrefsFromAuthUser,
   resolveAuthUserAndSession,
 } from '@/lib/client/ppUserSync';
+import { wipeBrowserSupabaseSession } from '@/lib/client/supabaseBrowserSessionWipe';
 import { readStatsBarCache } from '@/lib/client/statsBarCache';
 import { userFacingOptimizeError } from '@/lib/optimizeUserError';
 import {
@@ -50,6 +50,7 @@ import {
   stripPromptScoreMarkers,
 } from '@/lib/delimiter';
 import { UserAccountMenu } from '@/components/UserAccountMenu';
+import { ClientErrorBoundary } from '@/components/ClientErrorBoundary';
 
 const STORAGE_KEY = 'promptperfect:apikey';
 
@@ -277,9 +278,14 @@ export default function AppPage() {
       setHydrated(true);
     };
 
-    void resolveAuthUserAndSession(client).then(({ user }) => {
-      applyAuthUser(user);
-    });
+    void resolveAuthUserAndSession(client)
+      .then(({ user }) => {
+        applyAuthUser(user);
+      })
+      .catch(() => {
+        setUser(null);
+        setHydrated(true);
+      });
 
     const {
       data: { subscription },
@@ -463,12 +469,11 @@ export default function AppPage() {
         persisted?: boolean;
       };
 
-      if (data.persisted === false) {
-        incrementGuestCount();
-      } else if (typeof data.count === 'number') {
+      // Always increment locally by at least 1; use server count only when it's higher.
+      // This prevents the counter from sticking at 1 if the server DB is unavailable.
+      const localNext = incrementGuestCount();
+      if (typeof data.count === 'number' && data.count > localNext) {
         setGuestCount(data.count);
-      } else {
-        incrementGuestCount();
       }
       setGuestUsageVersion((v) => v + 1);
     }
@@ -627,19 +632,16 @@ export default function AppPage() {
     setSigningOut(true);
     const supabase = createSupabaseBrowserClient();
     try {
-      await supabase?.auth.signOut();
+      if (supabase) {
+        await supabase.auth.signOut();
+      }
     } finally {
       try {
         localStorage.removeItem('pp_ui_theme');
       } catch {
         // swallow: theme/storage cleanup is best-effort
       }
-      await clearPromptPerfectLocalAuth(null);
-      try {
-        localStorage.removeItem('pp:optimization_session_id');
-      } catch {
-        // swallow: secondary cleanup best-effort after sign-out
-      }
+      wipeBrowserSupabaseSession();
       setSigningOut(false);
       setUser(null);
       router.push('/login');
@@ -737,6 +739,8 @@ export default function AppPage() {
           </div>
         )}
 
+        {/* Optimize area — wrapped in ClientErrorBoundary for resilient UI recovery */}
+        <ClientErrorBoundary>
         {/* Two-column textarea section: row on large screens, normal flow, no overlap */}
         <div className="flex w-full flex-col gap-5 px-6 pb-0 pt-6 lg:flex-row lg:items-start">
           <div className="min-w-0 flex-1">
@@ -833,6 +837,7 @@ export default function AppPage() {
             optimized={getOptimizedPromptText(completion)}
           />
         </div>
+        </ClientErrorBoundary>
       </main>
 
       {user && (

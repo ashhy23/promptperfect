@@ -23,16 +23,16 @@ export function LandingHeader() {
       </div>
       <div className="flex items-center gap-3">
         <Link
-          href="/login"
-          className="cursor-pointer rounded-lg border border-[#4552FF] px-4 py-2 text-sm font-medium text-[#4552FF] transition hover:bg-[#4552FF]/10"
-        >
-          Log In
-        </Link>
-        <Link
-          href="/signup"
+          href="/app"
           className="cursor-pointer rounded-lg bg-[#4552FF] px-4 py-2 text-sm font-medium text-white transition hover:opacity-90"
         >
-          Sign Up
+          Try for free
+        </Link>
+        <Link
+          href="/login"
+          className="cursor-pointer rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-300 transition hover:border-zinc-500 hover:text-white dark:border-zinc-700 dark:text-zinc-300"
+        >
+          Log in
         </Link>
       </div>
     </header>

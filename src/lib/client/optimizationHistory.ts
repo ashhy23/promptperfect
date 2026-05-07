@@ -43,6 +43,7 @@ export function getOrCreateSessionId(): string {
     localStorage.setItem(SESSION_STORAGE_KEY, id);
     return id;
   } catch {
+    // swallow: localStorage unavailable (quota / private mode) — caller gets an empty session id
     return '';
   }
 }
@@ -65,6 +66,7 @@ function readLocalHistoryRows(): LocalHistoryRow[] {
     const parsed = JSON.parse(raw) as unknown;
     return Array.isArray(parsed) ? (parsed as LocalHistoryRow[]) : [];
   } catch {
+    // swallow: JSON.parse failed or localStorage unavailable — return empty history
     return [];
   }
 }
@@ -125,21 +127,26 @@ export async function saveToHistory(params: {
   /** Same id sent to `/api/optimize` as `session_id` — matches `optimization_logs.session_id` for feedback. */
   optimizeSessionId?: string;
 }): Promise<string | null> {
-  const session_id = getOrCreateSessionId();
+  const session_id = params.sessionId?.trim() || getOrCreateSessionId();
   if (!session_id) return null;
 
   const client = getSupabaseClient();
   if (client) {
     try {
+      const row: Record<string, unknown> = {
+        session_id,
+        prompt_original: params.prompt_original,
+        prompt_optimized: params.prompt_optimized,
+        mode: params.mode,
+        explanation: params.explanation,
+      };
+      if (params.userId) row.user_id = params.userId;
+      if (params.provider) row.provider = params.provider;
+      if (params.optimizeSessionId) row.optimize_session_id = params.optimizeSessionId;
+
       const { data, error } = await client
         .from('pp_optimization_history')
-        .insert({
-          session_id,
-          prompt_original: params.prompt_original,
-          prompt_optimized: params.prompt_optimized,
-          mode: params.mode,
-          explanation: params.explanation,
-        })
+        .insert(row)
         .select('id')
         .single();
 
@@ -155,6 +162,31 @@ export async function saveToHistory(params: {
           '[PromptPerfect] History save to Supabase failed:',
           error.message,
         );
+      }
+
+      // For authenticated users, fall back to the server route which ensures
+      // the pp_users row exists and writes all fields (including provider).
+      if (params.userId && typeof window !== 'undefined') {
+        try {
+          const resp = await fetch('/api/save-history', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+              session_id,
+              prompt_original: params.prompt_original,
+              prompt_optimized: params.prompt_optimized,
+              mode: params.mode,
+              explanation: params.explanation,
+              provider: params.provider ?? null,
+              optimize_session_id: params.optimizeSessionId ?? null,
+            }),
+          });
+          const json = (await resp.json().catch(() => ({}))) as { id?: string };
+          if (resp.ok && json.id) return json.id;
+        } catch {
+          // swallow: server fallback unavailable, continue to local storage
+        }
       }
     } catch (e) {
       if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {

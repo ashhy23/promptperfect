@@ -23,21 +23,23 @@ function parseAllowedOrigins(): string[] {
     .filter(Boolean);
 }
 
-/** Restrict cross-origin access to `ALLOWED_ORIGINS` (falls back to localhost + production app). */
+/**
+ * Echo Origin only when it appears in ALLOWED_ORIGINS.
+ * Anything else gets no CORS headers → browser refuses the cross-origin request.
+ */
 function corsHeadersForRequest(req: NextRequest): Record<string, string> {
   const allowed = parseAllowedOrigins();
   const origin = req.headers.get('origin')?.trim().replace(/\/$/, '') ?? '';
-  const allowOrigin =
-    origin && allowed.includes(origin) ? origin : allowed[0] ?? '';
-  const h: Record<string, string> = {
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  };
-  if (allowOrigin) {
-    h['Access-Control-Allow-Origin'] = allowOrigin;
-    h.Vary = 'Origin';
+  if (origin && allowed.includes(origin)) {
+    return {
+      'Access-Control-Allow-Origin': origin,
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Vary': 'Origin',
+    };
   }
-  return h;
+  // Origin absent or not in allowlist — omit ACAO header so the browser blocks the request.
+  return {};
 }
 
 const MODES: OptimizationMode[] = [

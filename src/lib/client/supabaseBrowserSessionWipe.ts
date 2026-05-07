@@ -14,6 +14,7 @@ export function wipeBrowserSupabaseSession(): void {
   try {
     projectRef = new URL(url).hostname.split('.')[0] ?? '';
   } catch {
+    // swallow: unparseable SUPABASE_URL — no project ref to derive, nothing to wipe
     return;
   }
   if (!projectRef) return;

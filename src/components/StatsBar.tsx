@@ -245,15 +245,16 @@ export function StatsBar({
       role="region"
       aria-label="Analytics"
     >
-      <div className="grid w-full grid-cols-1 gap-5 md:grid-cols-3 md:gap-6 md:items-start">
+      {/* divide-y stacks on mobile; divide-x gives full-height vertical lines on md+ */}
+      <div className="grid w-full grid-cols-1 divide-y divide-[#252525] md:grid-cols-3 md:divide-x md:divide-y-0">
         {/* Column 1: volume + reactions */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
+        <div className="flex flex-col gap-3 pb-4 sm:flex-row sm:items-center sm:gap-6 md:pb-0 md:pr-6">
           <div className="flex flex-col gap-1">
             <StatLabel>Total optimizations</StatLabel>
             <StatValue>{stats.total ?? 0}</StatValue>
           </div>
           <div
-            className="hidden h-10 w-px shrink-0 bg-[#252525] sm:block"
+            className="hidden w-px shrink-0 self-stretch bg-[#252525] sm:block"
             aria-hidden
           />
           <div className="flex items-center gap-5">
@@ -284,20 +285,20 @@ export function StatsBar({
 
         {/* Column 2: satisfaction & score */}
         <div
-          className={`flex flex-col justify-center gap-3 border-t border-[#252525] pt-4 md:border-t-0 md:border-l md:pt-0 md:pl-6 ${
-            !hasQuality ? 'md:opacity-40' : ''
+          className={`flex flex-col justify-center gap-3 py-4 md:py-0 md:px-6 ${
+            !hasQuality ? 'opacity-40' : ''
           }`}
         >
           {hasQuality ? (
             <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
               {satisfaction !== null && (
-                <div className="flex min-w-[7rem] flex-col gap-1">
+                <div className="flex flex-col gap-1">
                   <StatLabel>Satisfaction</StatLabel>
                   <StatValue>{satisfaction}%</StatValue>
                 </div>
               )}
               {typeof stats.avgScore === 'number' && (
-                <div className="flex min-w-[7rem] flex-col gap-1">
+                <div className="flex flex-col gap-1">
                   <StatLabel>Avg score</StatLabel>
                   <StatValue>{stats.avgScore}</StatValue>
                 </div>
@@ -310,8 +311,8 @@ export function StatsBar({
 
         {/* Column 3: modes */}
         <div
-          className={`flex flex-col gap-2 border-t border-[#252525] pt-4 md:border-t-0 md:border-l md:pt-0 md:pl-6 ${
-            !hasModes ? 'md:justify-center' : ''
+          className={`flex flex-col gap-2 pt-4 md:py-0 md:pl-6 ${
+            !hasModes ? 'justify-center' : ''
           }`}
         >
           {hasModes ? (
