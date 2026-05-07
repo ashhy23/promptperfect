@@ -137,7 +137,11 @@
     hideTimeout = null;
 
     let btn = createButton();
-    if (btn.parentNode) btn.remove();
+    if (btn.parentNode) {
+      // Clean up old scroll/resize listeners before detaching the button.
+      if (typeof btn._cleanup === 'function') btn._cleanup();
+      btn.remove();
+    }
 
     const updatePosition = () => {
       if (!currentTarget || !document.contains(currentTarget)) return;
@@ -214,8 +218,11 @@
   function hideButton() {
     hideTimeout = null;
     const btn = document.getElementById(BUTTON_ID);
-    if (btn && btn._cleanup) btn._cleanup();
-    if (btn && btn.parentNode) btn.remove();
+    if (btn) {
+      if (typeof btn._cleanup === 'function') btn._cleanup();
+      btn._cleanup = null;
+      if (btn.parentNode) btn.remove();
+    }
     currentTarget = null;
   }
 
