@@ -152,6 +152,11 @@ export default function AppPage() {
     baselineDown: number;
   } | null>(null);
 
+  /** Set to true when arriving from library "Re-optimize" — consumed by auto-trigger below. */
+  const pendingAutoOptimizeRef = useRef(false);
+  /** Always holds the latest handleOptimize to avoid stale-closure issues in the auto-trigger. */
+  const handleOptimizeRef = useRef<(() => Promise<void>) | null>(null);
+
   const [syncCompletion, setSyncCompletion] = useState('');
   const [syncLoading, setSyncLoading] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
@@ -212,13 +217,14 @@ export default function AppPage() {
     if (!raw) return;
     sessionStorage.removeItem('pp_reoptimize');
     try {
-      const o = JSON.parse(raw) as { text?: string; mode?: string };
-      if (typeof o.text === 'string') setInputText(o.text);
-      if (o.mode === 'better' || o.mode === 'specific' || o.mode === 'cot') {
-        setSelectedMode(o.mode);
+      const o = JSON.parse(raw) as { text?: string; mode?: string; autoOptimize?: boolean };
+      if (typeof o.text === 'string' && o.text.trim()) setInputText(o.text);
+      if (o.mode && (FEEDBACK_MODES as readonly string[]).includes(o.mode)) {
+        setSelectedMode(o.mode as OptimizationMode);
       }
+      if (o.autoOptimize) pendingAutoOptimizeRef.current = true;
     } catch {
-      // swallow: invalid settings JSON in localStorage
+      // swallow: invalid reoptimize payload
     }
   }, [mounted]);
 
@@ -562,6 +568,17 @@ export default function AppPage() {
         .finally(() => setSyncLoading(false));
     }
   }, [user, inputText, selectedMode, provider, apiKey, hasApiKey, isGemini, complete]);
+
+  // Keep ref in sync every render so the auto-trigger always calls the latest version.
+  handleOptimizeRef.current = handleOptimize;
+
+  // Auto-trigger: fires when arriving from library "Re-optimize".
+  // Waits for both hydrated AND user so the history row is saved with user_id.
+  useEffect(() => {
+    if (!hydrated || !user || !pendingAutoOptimizeRef.current || !inputText.trim() || isLoading) return;
+    pendingAutoOptimizeRef.current = false;
+    void handleOptimizeRef.current?.();
+  }, [hydrated, user, inputText, isLoading]);
 
   const resetComposerToNewPrompt = useCallback(() => {
     setSelectedHistoryItem(null);
