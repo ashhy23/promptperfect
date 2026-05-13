@@ -298,8 +298,9 @@ export default function LibraryPage() {
         sessionStorage.setItem(
           REOPTIMIZE_SESSION_KEY,
           JSON.stringify({
-            original_prompt: row.original_prompt,
+            text: row.original_prompt,
             mode: row.mode,
+            autoOptimize: true,
           }),
         );
       } catch {

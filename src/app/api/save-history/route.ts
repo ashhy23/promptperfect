@@ -78,20 +78,31 @@ export async function POST(request: Request) {
     prompt_optimized,
     mode,
     explanation,
+    user_id,
   };
-  row.user_id = user_id;
   if (provider) row.provider = provider;
   if (optimize_session_id) row.optimize_session_id = optimize_session_id;
 
-  const { data, error } = await admin
-    .from('pp_optimization_history')
-    .insert(row)
-    .select('id')
-    .single();
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  function isMissingColumnError(msg: string): boolean {
+    return /optimize_session_id|provider|schema cache|could not find|column.*does not exist|PGRST204/i.test(msg);
   }
 
-  return NextResponse.json({ id: data.id });
+  let lastError: { message: string } | null = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const { data, error } = await admin
+      .from('pp_optimization_history')
+      .insert(row)
+      .select('id')
+      .single();
+
+    if (!error && data?.id) return NextResponse.json({ id: data.id });
+
+    lastError = error ?? { message: 'Insert returned no id' };
+    if (!isMissingColumnError(lastError.message)) break;
+    if ('optimize_session_id' in row) { delete row.optimize_session_id; continue; }
+    if ('provider' in row) { delete row.provider; continue; }
+    break;
+  }
+
+  return NextResponse.json({ error: lastError?.message ?? 'Insert failed' }, { status: 500 });
 }

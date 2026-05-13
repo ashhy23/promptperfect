@@ -11,16 +11,6 @@ import {
 import Link from 'next/link';
 import { LandingHeader } from '@/components/LandingHeader';
 
-const apiSnippet = `const res = await fetch('/api/optimize', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    text: 'Your draft prompt…',
-    mode: 'better',
-  }),
-});
-// Response is a streamed text body (see docs).`;
-
 const steps = [
   {
     icon: Clipboard,
@@ -82,53 +72,55 @@ export default function Page() {
 
         <section
           aria-labelledby="works-everywhere-heading"
-          className="mb-20 min-w-0 md:mb-24"
+          className="mb-20 min-w-0 text-center md:mb-24"
         >
           <h2
             id="works-everywhere-heading"
-            className="text-center text-2xl font-semibold tracking-tight text-[#ECECEC] sm:text-3xl"
+            className="text-2xl font-semibold tracking-tight text-[#ECECEC] sm:text-3xl"
           >
             Works Everywhere
           </h2>
-          <p className="mx-auto mt-3 max-w-2xl text-center text-sm text-zinc-400 sm:text-base">
+          <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-zinc-400 sm:text-base">
             Use PromptPerfect in the browser, on any site with our extension, or from your own
             stack via the API.
           </p>
 
-          <div className="mx-auto mt-10 grid w-full max-w-5xl grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
-            <article className="flex min-w-0 flex-col rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 sm:p-7">
-              <div className="mb-4 flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-zinc-800 text-[#4552FF]">
-                <Globe className="h-6 w-6" aria-hidden />
+          <div className="mx-auto mt-10 grid w-full max-w-5xl grid-cols-1 items-stretch gap-6 sm:grid-cols-3 sm:gap-6">
+            {/* Web App */}
+            <article className="flex min-w-0 flex-col rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 text-left">
+              <div className="mb-4 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-zinc-800 text-[#4552FF]">
+                <Globe className="h-5 w-5" aria-hidden />
               </div>
-              <h3 className="text-lg font-semibold text-[#ECECEC]">Web App</h3>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+              <h3 className="text-base font-semibold text-[#ECECEC]">Web App</h3>
+              <p className="mt-2 flex-1 text-sm leading-relaxed text-zinc-400">
                 Full optimizer workspace: paste a prompt, pick a mode, and learn why the rewrite
                 works.
               </p>
               <Link
                 href="/app"
-                className="mt-6 inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[#4552FF] px-4 py-2.5 text-sm font-medium text-[#4552FF] transition-colors hover:bg-[#4552FF]/10"
+                className="mt-6 inline-flex min-h-[40px] items-center justify-center rounded-xl border border-[#4552FF] px-4 py-2 text-sm font-medium text-[#4552FF] transition-colors hover:bg-[#4552FF]/10"
               >
                 Open web app
               </Link>
             </article>
 
-            <article className="flex min-w-0 flex-col rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 sm:p-7">
-              <div className="mb-4 flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-zinc-800 text-[#4552FF]">
-                <Puzzle className="h-6 w-6" aria-hidden />
+            {/* Chrome Extension */}
+            <article className="flex min-w-0 flex-col rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 text-left">
+              <div className="mb-4 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-zinc-800 text-[#4552FF]">
+                <Puzzle className="h-5 w-5" aria-hidden />
               </div>
-              <h3 className="text-lg font-semibold text-[#ECECEC]">Chrome Extension</h3>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+              <h3 className="text-base font-semibold text-[#ECECEC]">Chrome Extension</h3>
+              <p className="mt-2 flex-1 text-sm leading-relaxed text-zinc-400">
                 Optimize prompts where you already work—ChatGPT, Gmail, and more.
               </p>
               <Link
                 href="/docs#chrome-extension"
-                className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#4552FF] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:opacity-90"
+                className="mt-6 inline-flex min-h-[40px] items-center justify-center rounded-xl bg-[#4552FF] px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
               >
                 Add to Chrome
               </Link>
-              <p className="mt-2 text-center text-xs text-zinc-500">
-                Install via Chrome Web Store when published, or load unpacked—see{' '}
+              <p className="mt-3 text-xs text-zinc-500">
+                Load unpacked or install from the Web Store—see{' '}
                 <Link href="/docs#chrome-extension" className="text-[#4552FF] hover:underline">
                   docs
                 </Link>
@@ -136,21 +128,19 @@ export default function Page() {
               </p>
             </article>
 
-            <article className="flex min-w-0 flex-col rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 sm:p-7">
-              <div className="mb-4 flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-zinc-800 text-[#4552FF]">
-                <Code2 className="h-6 w-6" aria-hidden />
+            {/* API */}
+            <article className="flex min-w-0 flex-col rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 text-left">
+              <div className="mb-4 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-zinc-800 text-[#4552FF]">
+                <Code2 className="h-5 w-5" aria-hidden />
               </div>
-              <h3 className="text-lg font-semibold text-[#ECECEC]">API</h3>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+              <h3 className="text-base font-semibold text-[#ECECEC]">API</h3>
+              <p className="mt-2 flex-1 text-sm leading-relaxed text-zinc-400">
                 POST your draft prompt and stream back an optimized version from your backend or
                 scripts.
               </p>
-              <pre className="mt-4 max-h-40 overflow-auto rounded-lg border border-zinc-800 bg-zinc-950 p-3 text-left text-[11px] leading-relaxed text-zinc-300 sm:text-xs">
-                <code>{apiSnippet}</code>
-              </pre>
               <Link
                 href="/docs"
-                className="mt-4 inline-flex min-h-[44px] items-center justify-center text-sm font-medium text-[#4552FF] underline-offset-2 hover:underline"
+                className="mt-6 inline-flex min-h-[40px] items-center justify-center rounded-xl border border-zinc-700 px-4 py-2 text-sm font-medium text-[#4552FF] transition-colors hover:border-[#4552FF]/50 hover:bg-[#4552FF]/5"
               >
                 Read the Docs →
               </Link>

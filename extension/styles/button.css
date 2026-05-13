@@ -1,5 +1,5 @@
 .pp-optimize-button {
-  position: absolute;
+  position: fixed;
   display: inline-flex;
   align-items: center;
   gap: 6px;

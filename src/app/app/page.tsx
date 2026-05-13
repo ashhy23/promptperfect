@@ -23,7 +23,9 @@ import { StatsBar } from '@/components/StatsBar';
 import { AppSettingsPanel } from '@/components/AppSettingsPanel';
 import { DemoTokenBar } from '@/components/DemoTokenBar';
 import { DemoLimitModal } from '@/components/DemoLimitModal';
+import { SignInRequiredModal } from '@/components/SignInRequiredModal';
 import {
+  GUEST_TOKEN_LIMIT,
   getGuestId,
   getGuestCount,
   setGuestCount,
@@ -134,6 +136,7 @@ export default function AppPage() {
     useState<OptimizationHistoryItem | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [showLimitModal, setShowLimitModal] = useState(false);
+  const [showSignInModal, setShowSignInModal] = useState(false);
   const [guestUsageVersion, setGuestUsageVersion] = useState(0);
   const [usageGateError, setUsageGateError] = useState<string | null>(null);
   const optimizeContextRef = useRef({ mode: 'better' as OptimizationMode });
@@ -148,6 +151,11 @@ export default function AppPage() {
     baselineUp: number;
     baselineDown: number;
   } | null>(null);
+
+  /** Set to true when arriving from library "Re-optimize" — consumed by auto-trigger below. */
+  const pendingAutoOptimizeRef = useRef(false);
+  /** Always holds the latest handleOptimize to avoid stale-closure issues in the auto-trigger. */
+  const handleOptimizeRef = useRef<(() => Promise<void>) | null>(null);
 
   const [syncCompletion, setSyncCompletion] = useState('');
   const [syncLoading, setSyncLoading] = useState(false);
@@ -209,13 +217,14 @@ export default function AppPage() {
     if (!raw) return;
     sessionStorage.removeItem('pp_reoptimize');
     try {
-      const o = JSON.parse(raw) as { text?: string; mode?: string };
-      if (typeof o.text === 'string') setInputText(o.text);
-      if (o.mode === 'better' || o.mode === 'specific' || o.mode === 'cot') {
-        setSelectedMode(o.mode);
+      const o = JSON.parse(raw) as { text?: string; mode?: string; autoOptimize?: boolean };
+      if (typeof o.text === 'string' && o.text.trim()) setInputText(o.text);
+      if (o.mode && (FEEDBACK_MODES as readonly string[]).includes(o.mode)) {
+        setSelectedMode(o.mode as OptimizationMode);
       }
+      if (o.autoOptimize) pendingAutoOptimizeRef.current = true;
     } catch {
-      // swallow: invalid settings JSON in localStorage
+      // swallow: invalid reoptimize payload
     }
   }, [mounted]);
 
@@ -451,23 +460,23 @@ export default function AppPage() {
         const body = (await res.json().catch(() => ({}))) as {
           count?: number;
         };
+        // Sync local counter with server's confirmed count so the bar reflects reality.
         if (typeof body.count === 'number') {
           setGuestCount(body.count);
+        } else {
+          // 429 means limit is reached — ensure local state reflects that.
+          setGuestCount(GUEST_TOKEN_LIMIT);
         }
         setGuestUsageVersion((v) => v + 1);
         setShowLimitModal(true);
         return;
       }
 
-      if (!res.ok) {
-        setUsageGateError('Could not verify guest usage. Try again.');
-        return;
-      }
-
-      const data = (await res.json().catch(() => ({}))) as {
-        count?: number;
-        persisted?: boolean;
-      };
+      // For any server-side failure (503 = DB not configured, 500 = upsert error, etc.)
+      // fall through to optimistic local tracking so guests aren't blocked by infra issues.
+      const data = res.ok
+        ? ((await res.json().catch(() => ({}))) as { count?: number; persisted?: boolean })
+        : {};
 
       // Always increment locally by at least 1; use server count only when it's higher.
       // This prevents the counter from sticking at 1 if the server DB is unavailable.
@@ -559,6 +568,17 @@ export default function AppPage() {
         .finally(() => setSyncLoading(false));
     }
   }, [user, inputText, selectedMode, provider, apiKey, hasApiKey, isGemini, complete]);
+
+  // Keep ref in sync every render so the auto-trigger always calls the latest version.
+  handleOptimizeRef.current = handleOptimize;
+
+  // Auto-trigger: fires when arriving from library "Re-optimize".
+  // Waits for both hydrated AND user so the history row is saved with user_id.
+  useEffect(() => {
+    if (!hydrated || !user || !pendingAutoOptimizeRef.current || !inputText.trim() || isLoading) return;
+    pendingAutoOptimizeRef.current = false;
+    void handleOptimizeRef.current?.();
+  }, [hydrated, user, inputText, isLoading]);
 
   const resetComposerToNewPrompt = useCallback(() => {
     setSelectedHistoryItem(null);
@@ -703,12 +723,13 @@ export default function AppPage() {
               </>
             ) : (
               <>
-                <Link
-                  href="/library"
+                <button
+                  type="button"
+                  onClick={() => setShowSignInModal(true)}
                   className="rounded-lg border border-transparent px-3 py-1.5 text-sm text-[#888] transition-all duration-200 ease-out hover:border-[#2a2a2a] hover:bg-[#111] hover:text-[#ECECEC]"
                 >
                   Library
-                </Link>
+                </button>
                 <Link
                   href="/login"
                   className="rounded-lg border border-transparent px-3 py-1.5 text-sm text-[#888] transition-all duration-200 ease-out hover:border-[#2a2a2a] hover:bg-[#111] hover:text-[#ECECEC]"
@@ -855,6 +876,12 @@ export default function AppPage() {
       <DemoLimitModal
         isOpen={showLimitModal}
         onClose={() => setShowLimitModal(false)}
+      />
+
+      <SignInRequiredModal
+        isOpen={showSignInModal}
+        onClose={() => setShowSignInModal(false)}
+        feature="the Library"
       />
 
       {user && (

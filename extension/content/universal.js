@@ -137,7 +137,11 @@
     hideTimeout = null;
 
     let btn = createButton();
-    if (btn.parentNode) btn.remove();
+    if (btn.parentNode) {
+      // Clean up old scroll/resize listeners before detaching the button.
+      if (typeof btn._cleanup === 'function') btn._cleanup();
+      btn.remove();
+    }
 
     const updatePosition = () => {
       if (!currentTarget || !document.contains(currentTarget)) return;
@@ -180,8 +184,9 @@
           return;
         }
 
-        if (response && response.optimizedText != null && response.optimizedText !== '') {
-          setElementValue(target, response.optimizedText);
+        const optimizedText = response && (response.optimizedText ?? response.result ?? '');
+        if (optimizedText) {
+          setElementValue(target, optimizedText);
           flashButtonSuccess(btn);
           showNotification('Prompt optimized!', 'success');
         } else {
@@ -193,9 +198,9 @@
             ? err.message
             : 'Could not reach PromptPerfect API';
         if (/Could not establish|Receiving end|Extension context/i.test(msg)) {
-          showNotification('Could not reach PromptPerfect API. Reload the extension.', 'error');
+          showNotification('Extension error — try reloading the page.', 'error');
         } else {
-          showNotification('Could not reach PromptPerfect API', 'error');
+          showNotification(msg, 'error');
         }
       } finally {
         setButtonReady(btn);
@@ -213,8 +218,11 @@
   function hideButton() {
     hideTimeout = null;
     const btn = document.getElementById(BUTTON_ID);
-    if (btn && btn._cleanup) btn._cleanup();
-    if (btn && btn.parentNode) btn.remove();
+    if (btn) {
+      if (typeof btn._cleanup === 'function') btn._cleanup();
+      btn._cleanup = null;
+      if (btn.parentNode) btn.remove();
+    }
     currentTarget = null;
   }
 
