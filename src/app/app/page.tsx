@@ -782,8 +782,8 @@ export default function AppPage() {
               afterTextarea={
                 completion && !isLoading ? (
                   <div className="flex flex-wrap items-center gap-3">
-                    {historyId && user?.id && !historyId.startsWith('local-') && (
-                      <ShareButton historyId={historyId} />
+                    {historyId && (
+                      <ShareButton historyId={historyId} userId={user?.id ?? null} />
                     )}
                     <SavePromptButton
                       originalPrompt={inputText}

@@ -6,10 +6,12 @@ import { Share2, Check, Copy } from 'lucide-react';
 
 interface ShareButtonProps {
   historyId: string;
+  /** Pass the signed-in user's id. Omit or pass null for guests. */
+  userId?: string | null;
   disabled?: boolean;
 }
 
-export function ShareButton({ historyId, disabled = false }: ShareButtonProps) {
+export function ShareButton({ historyId, userId, disabled = false }: ShareButtonProps) {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -17,8 +19,13 @@ export function ShareButton({ historyId, disabled = false }: ShareButtonProps) {
   const [needsSignIn, setNeedsSignIn] = useState(false);
 
   const handleShare = async () => {
+    // Guest or local-only history — no API call needed, prompt to sign in immediately.
+    if (!userId || historyId.startsWith('local-')) {
+      setNeedsSignIn(true);
+      return;
+    }
+
     if (shareUrl) {
-      // Already generated, just copy
       await copyToClipboard(shareUrl);
       return;
     }
