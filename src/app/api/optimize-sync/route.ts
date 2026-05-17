@@ -24,13 +24,18 @@ function parseAllowedOrigins(): string[] {
 }
 
 /**
- * Echo Origin only when it appears in ALLOWED_ORIGINS.
+ * Echo Origin only when it appears in ALLOWED_ORIGINS or is a browser-extension
+ * origin (chrome-extension:// / moz-extension://). Extension origins cannot be
+ * spoofed from a web page, so allowing all of them is safe.
  * Anything else gets no CORS headers → browser refuses the cross-origin request.
  */
 function corsHeadersForRequest(req: NextRequest): Record<string, string> {
   const allowed = parseAllowedOrigins();
   const origin = req.headers.get('origin')?.trim().replace(/\/$/, '') ?? '';
-  if (origin && allowed.includes(origin)) {
+  const isBrowserExtension =
+    origin.startsWith('chrome-extension://') ||
+    origin.startsWith('moz-extension://');
+  if (origin && (isBrowserExtension || allowed.includes(origin))) {
     return {
       'Access-Control-Allow-Origin': origin,
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
