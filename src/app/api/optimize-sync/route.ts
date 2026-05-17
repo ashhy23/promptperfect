@@ -14,7 +14,7 @@ function parseAllowedOrigins(): string[] {
   if (!raw) {
     return [
       'http://localhost:3000',
-      'https://promptperfect.vercel.app',
+      'https://promptperfect-beaglecorp.vercel.app',
     ];
   }
   return raw

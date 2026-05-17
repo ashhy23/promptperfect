@@ -1,6 +1,6 @@
 'use strict';
 
-const DEFAULT_API_URL = 'https://promptperfect.vercel.app';
+const DEFAULT_API_URL = 'https://promptperfect-beaglecorp.vercel.app';
 
 // ── Element refs ──────────────────────────────────────────────────────────────
 const promptInput    = document.getElementById('promptInput');

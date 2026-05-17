@@ -55,13 +55,13 @@ describe("/api/optimize-sync", () => {
       asNextRequest({
         method: "OPTIONS",
         headers: {
-          Origin: "https://promptperfect.vercel.app",
+          Origin: "https://promptperfect-beaglecorp.vercel.app",
         },
       }),
     );
     expect(res.status).toBe(204);
     expect(res.headers.get("Access-Control-Allow-Origin")).toBe(
-      "https://promptperfect.vercel.app",
+      "https://promptperfect-beaglecorp.vercel.app",
     );
   });
 
