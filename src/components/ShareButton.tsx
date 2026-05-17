@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Share2, Check, Copy } from 'lucide-react';
 
 interface ShareButtonProps {
@@ -13,6 +14,7 @@ export function ShareButton({ historyId, disabled = false }: ShareButtonProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [needsSignIn, setNeedsSignIn] = useState(false);
 
   const handleShare = async () => {
     if (shareUrl) {
@@ -33,6 +35,10 @@ export function ShareButton({ historyId, disabled = false }: ShareButtonProps) {
       });
 
       if (!res.ok) {
+        if (res.status === 401) {
+          setNeedsSignIn(true);
+          return;
+        }
         const data = await res.json().catch(() => ({ error: 'Failed to generate share link' }));
         throw new Error(data.error || 'Failed to generate share link');
       }
@@ -56,6 +62,20 @@ export function ShareButton({ historyId, disabled = false }: ShareButtonProps) {
       setError('Failed to copy to clipboard');
     }
   };
+
+  if (needsSignIn) {
+    return (
+      <div className="flex items-center gap-2 text-xs text-[#B0B0B0]">
+        <Share2 className="h-4 w-4 shrink-0" />
+        <span>
+          <Link href="/login" className="font-medium text-[#4552FF] hover:underline underline-offset-2">
+            Sign in
+          </Link>{' '}
+          to share your optimization
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-2">
