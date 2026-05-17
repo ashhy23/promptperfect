@@ -33,18 +33,11 @@ function formatDate(iso: string) {
   return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-export default async function SharedOptimizationPage({
-  params,
-}: {
-  params: Promise<{ shareId: string }>;
-}) {
-  const { shareId } = await params;
-  const client = getSupabaseClient();
-
-  const ErrorPage = ({ title, body }: { title: string; body: string }) => (
+function ErrorPage({ title, body }: { title: string; body: string }) {
+  return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-[#050505] px-4">
       <div className="w-full max-w-sm rounded-2xl border border-[#252525] bg-gradient-to-b from-white/[0.05] to-transparent p-10 text-center shadow-2xl">
-        <div className="mb-4 flex h-12 w-12 mx-auto items-center justify-center rounded-full border border-[#252525] bg-[#0A0A0A]">
+        <div className="mb-4 mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-[#252525] bg-[#0A0A0A]">
           <Sparkles className="h-5 w-5 text-[#4552FF]" />
         </div>
         <h1 className="font-heading text-xl font-semibold text-[#E7E6D9]">{title}</h1>
@@ -58,6 +51,15 @@ export default async function SharedOptimizationPage({
       </div>
     </div>
   );
+}
+
+export default async function SharedOptimizationPage({
+  params,
+}: {
+  params: Promise<{ shareId: string }>;
+}) {
+  const { shareId } = await params;
+  const client = getSupabaseClient();
 
   if (!client) {
     return <ErrorPage title="Service Unavailable" body="Unable to connect to the database." />;
