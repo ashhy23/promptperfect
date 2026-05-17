@@ -43,6 +43,7 @@ import {
   persistEnginePrefsFromAuthUser,
   resolveAuthUserAndSession,
 } from '@/lib/client/ppUserSync';
+import { claimGuestHistoryAfterAuth } from '@/lib/client/claimGuestHistory';
 import { wipeBrowserSupabaseSession } from '@/lib/client/supabaseBrowserSessionWipe';
 import { readStatsBarCache } from '@/lib/client/statsBarCache';
 import { userFacingOptimizeError } from '@/lib/optimizeUserError';
@@ -298,8 +299,11 @@ export default function AppPage() {
 
     const {
       data: { subscription },
-    } = client.auth.onAuthStateChange((_event, session) => {
+    } = client.auth.onAuthStateChange((event, session) => {
       applyAuthUser(session?.user ?? null);
+      if (event === 'SIGNED_IN' && session?.user) {
+        void claimGuestHistoryAfterAuth();
+      }
     });
 
     return () => {

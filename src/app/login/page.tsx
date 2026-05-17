@@ -16,6 +16,7 @@ import {
   authLabelClass,
   authPrimaryBtnClass,
 } from '@/components/auth/auth-styles';
+import { mapOAuthCallbackError } from '@/lib/auth/mapOAuthCallbackError';
 import { claimGuestHistoryAfterAuth } from '@/lib/client/claimGuestHistory';
 import { writeEnginePrefs } from '@/lib/client/enginePrefsStorage';
 
@@ -49,7 +50,7 @@ export default function LoginPage() {
     const p = new URLSearchParams(window.location.search);
     const fromOAuth = p.get('error')?.trim();
     if (fromOAuth) {
-      setError(decodeURIComponent(fromOAuth));
+      setError(mapOAuthCallbackError(decodeURIComponent(fromOAuth)));
     }
   }, []);
 

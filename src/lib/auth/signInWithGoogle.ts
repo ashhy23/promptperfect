@@ -17,6 +17,10 @@ export async function signInWithGoogle(client: SupabaseClient): Promise<{
       options: {
         redirectTo,
         skipBrowserRedirect: true,
+        queryParams: {
+          access_type: 'online',
+          prompt: 'select_account',
+        },
       },
     });
 
@@ -26,7 +30,7 @@ export async function signInWithGoogle(client: SupabaseClient): Promise<{
     if (!url) {
       return {
         error: new Error(
-          'Google sign-in did not return a redirect URL. Check Supabase Auth → Google provider and redirect allowlist.',
+          'Google sign-in did not return a redirect URL. In Supabase: Authentication → Google — enable the provider, paste Client ID/Secret from Google Cloud, and add your app callback to Redirect URLs (e.g. /auth/callback).',
         ),
       };
     }
