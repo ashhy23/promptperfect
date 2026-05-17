@@ -8,6 +8,19 @@ vi.mock("@/lib/client/supabase", () => ({
   getSupabaseAdminClient: () => null,
 }));
 
+// Mock the route-handler Supabase client so the auth gate passes in tests.
+// Tests that exercise the no-key path need an authenticated session.
+vi.mock("@/lib/server/supabase", () => ({
+  createRouteHandlerClient: async () => ({
+    auth: {
+      getUser: async () => ({
+        data: { user: { id: "test-user-id", email: "test@example.com" } },
+        error: null,
+      }),
+    },
+  }),
+}));
+
 vi.mock("@/lib/providers", () => ({
   createProvider: () => ({
     model: {},
@@ -55,13 +68,13 @@ describe("/api/optimize-sync", () => {
       asNextRequest({
         method: "OPTIONS",
         headers: {
-          Origin: "https://promptperfect.vercel.app",
+          Origin: "https://promptperfect-beaglecorp.vercel.app",
         },
       }),
     );
     expect(res.status).toBe(204);
     expect(res.headers.get("Access-Control-Allow-Origin")).toBe(
-      "https://promptperfect.vercel.app",
+      "https://promptperfect-beaglecorp.vercel.app",
     );
   });
 

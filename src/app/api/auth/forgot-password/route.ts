@@ -83,11 +83,9 @@ export async function POST(request: Request) {
         { status: 404 },
       );
     }
+    console.error('[forgot-password] generateLink error:', genError.message);
     return NextResponse.json(
-      {
-        error: genError.message?.trim() || 'Could not verify account.',
-        code: 'LOOKUP_FAILED',
-      },
+      { error: 'Could not verify account. Please try again.', code: 'LOOKUP_FAILED' },
       { status: 400 },
     );
   }
@@ -116,17 +114,16 @@ export async function POST(request: Request) {
   });
 
   if (error) {
-    const msg = error.message?.trim() || 'Could not send reset email.';
+    const msg = error.message?.trim() || '';
     const lower = msg.toLowerCase();
-    const hint =
-      /redirect|url/i.test(lower)
-        ? `Add this URL to Supabase → Authentication → URL Configuration → Redirect URLs: ${redirectTo}`
-        : undefined;
+    console.error('[forgot-password] resetPasswordForEmail error:', msg);
+    const isRedirectIssue = /redirect|url/i.test(lower);
     return NextResponse.json(
       {
-        error: msg,
+        error: isRedirectIssue
+          ? `Reset email blocked: the redirect URL is not in your Supabase allowlist. Add "${redirectTo}" to Supabase → Authentication → URL Configuration → Redirect URLs.`
+          : 'Could not send reset email. Please try again later.',
         code: 'RESET_EMAIL_FAILED',
-        ...(hint ? { hint } : {}),
       },
       { status: 400 },
     );

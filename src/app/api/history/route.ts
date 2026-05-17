@@ -65,8 +65,9 @@ export async function GET(request: Request) {
   }
 
   if (error) {
+    console.error('[history GET]', error.message);
     return NextResponse.json(
-      { error: error.message, code: 'HISTORY_DB_ERROR' },
+      { error: 'Could not load history', code: 'HISTORY_DB_ERROR' },
       { status: 500 },
     );
   }
@@ -178,11 +179,9 @@ export async function POST(request: Request) {
     break;
   }
 
+  console.error('[history POST]', lastError?.message ?? 'Insert failed');
   return NextResponse.json(
-    {
-      error: lastError?.message ?? 'Insert failed',
-      code: 'HISTORY_INSERT_ERROR',
-    },
+    { error: 'Could not save history', code: 'HISTORY_INSERT_ERROR' },
     { status: 500 },
   );
 }
@@ -239,8 +238,9 @@ export async function DELETE(request: Request) {
   const { data: hist, error: histErr } = histQuery;
 
   if (histErr) {
+    console.error('[history DELETE fetch]', histErr.message);
     return NextResponse.json(
-      { error: histErr.message, code: 'HISTORY_FETCH_ERROR' },
+      { error: 'Database error', code: 'HISTORY_FETCH_ERROR' },
       { status: 500 },
     );
   }
@@ -266,8 +266,9 @@ export async function DELETE(request: Request) {
       .delete()
       .in('session_id', [...sessionKeys]);
     if (logDelErr) {
+      console.error('[history DELETE logs]', logDelErr.message);
       return NextResponse.json(
-        { error: logDelErr.message, code: 'FEEDBACK_LOG_DELETE_ERROR' },
+        { error: 'Database error', code: 'FEEDBACK_LOG_DELETE_ERROR' },
         { status: 500 },
       );
     }
@@ -291,14 +292,16 @@ export async function DELETE(request: Request) {
       .eq('optimized_prompt', hist.prompt_optimized);
 
     if (delByContent.error) {
+      console.error('[history DELETE library]', delByContent.error.message);
       return NextResponse.json(
-        { error: delByContent.error.message, code: 'LIBRARY_DELETE_ERROR' },
+        { error: 'Database error', code: 'LIBRARY_DELETE_ERROR' },
         { status: 500 },
       );
     }
   } else if (delByLink.error) {
+    console.error('[history DELETE library]', delByLink.error.message);
     return NextResponse.json(
-      { error: delByLink.error.message, code: 'LIBRARY_DELETE_ERROR' },
+      { error: 'Database error', code: 'LIBRARY_DELETE_ERROR' },
       { status: 500 },
     );
   }
@@ -310,8 +313,9 @@ export async function DELETE(request: Request) {
     .eq('user_id', identity.userId);
 
   if (delHistErr) {
+    console.error('[history DELETE row]', delHistErr.message);
     return NextResponse.json(
-      { error: delHistErr.message, code: 'HISTORY_DELETE_ERROR' },
+      { error: 'Database error', code: 'HISTORY_DELETE_ERROR' },
       { status: 500 },
     );
   }

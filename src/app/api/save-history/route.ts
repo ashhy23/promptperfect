@@ -104,5 +104,6 @@ export async function POST(request: Request) {
     break;
   }
 
-  return NextResponse.json({ error: lastError?.message ?? 'Insert failed' }, { status: 500 });
+  console.error('[save-history POST]', lastError?.message ?? 'Insert failed');
+  return NextResponse.json({ error: 'Could not save history' }, { status: 500 });
 }

@@ -23,6 +23,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Guest ID required' }, { status: 400 })
   }
 
+  // Accept UUIDs (36-char hex+dash) or short alphanumeric identifiers up to 80 chars.
+  if (!/^[a-zA-Z0-9_-]{4,80}$/.test(guestId)) {
+    return NextResponse.json({ error: 'Invalid guest ID format' }, { status: 400 })
+  }
+
   const { data: existing } = await supabase
     .from('guest_usage')
     .select('optimization_count')
@@ -72,7 +77,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const guestId = searchParams.get('guestId')
 
-  if (!guestId) {
+  if (!guestId || !/^[a-zA-Z0-9_-]{4,80}$/.test(guestId)) {
     return NextResponse.json({ count: 0, limit: GUEST_LIMIT, remaining: GUEST_LIMIT })
   }
 

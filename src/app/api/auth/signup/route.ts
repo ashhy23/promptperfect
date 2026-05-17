@@ -6,6 +6,7 @@ import {
   getSupabaseUrl,
   normalizeEnvValue,
 } from '@/lib/client/supabase'
+import { getSiteOriginForAuth } from '@/lib/auth/oauthRedirect'
 
 function getServiceSupabase() {
   const url = getSupabaseUrl()
@@ -20,17 +21,6 @@ function looksLikeDuplicateAuthError(message: string): boolean {
   return /already\s*registered|already\s*exists|user\s*already|duplicate|unique/i.test(
     message,
   )
-}
-
-function clarifySignupError(message: string): string {
-  if (message.includes('Database error creating new user')) {
-    return (
-      'Could not create your account (auth database error). ' +
-      'If this keeps happening, open Supabase Dashboard → Database and check for triggers ' +
-      'on auth.users that insert into public tables; fix or remove the broken trigger.'
-    )
-  }
-  return message
 }
 
 export async function POST(request: Request) {
@@ -65,6 +55,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Database not configured' }, { status: 503 })
   }
 
+  // Anon client used for signUp (triggers confirmation email) and resend.
+  const anon = createClient(url, anonKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
+
+  // Redirect destination embedded in the confirmation email link.
+  const emailRedirectTo = `${getSiteOriginForAuth(request)}/auth/callback`
+
+  // Pre-flight: check pp_users table for an existing row with this email.
   const { data: existingRow } = await supabase
     .from('pp_users')
     .select('id')
@@ -82,14 +81,15 @@ export async function POST(request: Request) {
   }
 
   let uid: string | undefined
-  let authUser:
-    | { id: string; email?: string | null }
-    | undefined
+  // Track whether signUp already triggered a confirmation email so we don't
+  // double-send when falling through to resend() below.
+  let verificationEmailSent = false
 
+  // --- Primary path: admin.createUser (no email sent by Supabase admin API) ---
   const adminResult = await supabase.auth.admin.createUser({
     email,
     password,
-    email_confirm: true,
+    email_confirm: false,   // Do NOT auto-confirm — we send the email ourselves
     user_metadata: {
       name: name || undefined,
       full_name: name || undefined,
@@ -98,7 +98,6 @@ export async function POST(request: Request) {
 
   if (!adminResult.error && adminResult.data.user) {
     uid = adminResult.data.user.id
-    authUser = adminResult.data.user
   } else {
     const adminMsg = adminResult.error?.message ?? ''
     if (looksLikeDuplicateAuthError(adminMsg)) {
@@ -111,14 +110,12 @@ export async function POST(request: Request) {
       )
     }
 
-    const anon = createClient(url, anonKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    })
-
+    // --- Fallback path: anon signUp (Supabase sends confirmation email automatically) ---
     const signUpRes = await anon.auth.signUp({
       email,
       password,
       options: {
+        emailRedirectTo,
         data: {
           name: name || undefined,
           full_name: name || undefined,
@@ -137,9 +134,9 @@ export async function POST(request: Request) {
           { status: 409 },
         )
       }
-      const primary = clarifySignupError(adminMsg || sm)
+      console.error('[signup] signUp fallback error:', adminMsg || sm)
       return NextResponse.json(
-        { error: primary || sm || 'Sign up failed' },
+        { error: 'Sign up failed. Please try again.' },
         { status: 400 },
       )
     }
@@ -149,20 +146,14 @@ export async function POST(request: Request) {
     }
 
     uid = signUpRes.data.user.id
-    authUser = signUpRes.data.user
-
-    const { error: confirmErr } = await supabase.auth.admin.updateUserById(uid, {
-      email_confirm: true,
-    })
-    if (confirmErr && process.env.NODE_ENV !== 'production') {
-      console.error('[signup] updateUserById after signUp:', confirmErr.message)
-    }
+    verificationEmailSent = true   // signUp already sent the confirmation email
   }
 
   if (!uid) {
     return NextResponse.json({ error: 'Sign up failed' }, { status: 500 })
   }
 
+  // Insert app-level user row (FK to auth.users).
   const { error: insertErr } = await supabase.from('pp_users').insert({
     id: uid,
     name: name || null,
@@ -173,56 +164,26 @@ export async function POST(request: Request) {
     api_key: '',
   })
   if (insertErr && insertErr.code !== '23505') {
+    console.error('[signup insert pp_users]', insertErr.message)
     return NextResponse.json(
-      { error: insertErr.message || 'Could not create profile' },
+      { error: 'Could not create profile' },
       { status: 500 },
     )
   }
 
-  /** Profile display_name comes from auth trigger (globally unique). Do not overwrite with plain signup name — avoids collisions. */
-
-  const { data: profile } = await supabase
-    .from('pp_users')
-    .select('id, name, email, provider, model')
-    .eq('id', uid)
-    .maybeSingle()
-
-  const userPayload =
-    profile ??
-    (authUser
-      ? {
-          id: authUser.id,
-          name: name || null,
-          email: authUser.email ?? email,
-          provider: 'gemini' as const,
-          model: 'gemini-2.0-flash' as const,
-        }
-      : null)
-
-  if (!userPayload) {
-    return NextResponse.json(
-      { error: 'Account created but profile could not be loaded' },
-      { status: 500 },
-    )
-  }
-
-  const authClient = createClient(url, anonKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
-  let session: { access_token: string; refresh_token: string } | undefined
-  const { data: signInData, error: signInErr } =
-    await authClient.auth.signInWithPassword({ email, password })
-  if (!signInErr && signInData.session) {
-    session = {
-      access_token: signInData.session.access_token,
-      refresh_token: signInData.session.refresh_token,
+  // For the admin-path: admin.createUser does NOT send an email, so we trigger
+  // the confirmation email explicitly via resend().
+  if (!verificationEmailSent) {
+    const { error: resendErr } = await anon.auth.resend({
+      type: 'signup',
+      email,
+      options: { emailRedirectTo },
+    })
+    if (resendErr) {
+      // Non-fatal: account exists, verification email just couldn't be sent.
+      console.error('[signup] resend verification email:', resendErr.message)
     }
-  } else if (signInErr && process.env.NODE_ENV !== 'production') {
-    console.error('[signup] signInWithPassword after signup:', signInErr.message)
   }
 
-  return NextResponse.json({
-    user: userPayload,
-    ...(session ? { session } : {}),
-  })
+  return NextResponse.json({ verificationRequired: true, email })
 }

@@ -57,6 +57,7 @@ export default function ProfilePage() {
   const [loadErrorCode, setLoadErrorCode] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [needsSignIn, setNeedsSignIn] = useState(false);
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
 
   const load = useCallback(async () => {
     setLoadError(null);
@@ -104,6 +105,11 @@ export default function ProfilePage() {
   }, [load]);
 
   const handleResetAuth = async () => {
+    await clearPromptPerfectLocalAuth(supabase);
+    router.replace('/login');
+  };
+
+  const handleSignOut = async () => {
     await clearPromptPerfectLocalAuth(supabase);
     router.replace('/login');
   };
@@ -249,6 +255,33 @@ export default function ProfilePage() {
           >
             ← Back to app
           </Link>
+          {showSignOutConfirm ? (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-[#B0B0B0]">Sign out?</span>
+              <button
+                type="button"
+                onClick={() => void handleSignOut()}
+                className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-red-500"
+              >
+                Sign Out
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowSignOutConfirm(false)}
+                className="rounded-lg border border-[#252525] px-3 py-1.5 text-sm text-[#B0B0B0] hover:bg-[#141414]"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowSignOutConfirm(true)}
+              className="text-sm text-[#71717A] transition hover:text-[#B0B0B0]"
+            >
+              Sign out
+            </button>
+          )}
         </div>
       </header>
 
@@ -341,7 +374,7 @@ export default function ProfilePage() {
                 <>
                   <div className="flex flex-wrap items-baseline gap-2">
                     <h2 className="font-heading text-xl font-semibold text-[#E7E6D9]">
-                      {profile.display_name || 'User'}
+                      {profile.display_name || '—'}
                     </h2>
                     <button
                       type="button"
@@ -354,15 +387,16 @@ export default function ProfilePage() {
                       Edit
                     </button>
                   </div>
-                  <p className="mt-1 text-sm text-[#B0B0B0]">{profile.email}</p>
-                  <p className="mt-2 text-xs text-[#71717A]">
-                    Member since{' '}
-                    {new Date(profile.created_at).toLocaleDateString(undefined, {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                    })}
-                  </p>
+                  <p className="mt-1 text-sm text-[#B0B0B0]">{profile.email || '—'}</p>
+                  {profile.created_at && (
+                    <p className="mt-2 text-xs text-[#71717A]">
+                      Member since{' '}
+                      {new Date(profile.created_at).toLocaleDateString('en-US', {
+                        month: 'long',
+                        year: 'numeric',
+                      })}
+                    </p>
+                  )}
                   <p className="mt-3 text-sm text-[#B0B0B0]">
                     <span className="font-medium text-[#E7E6D9]">
                       {profile.optimization_count}
@@ -378,32 +412,50 @@ export default function ProfilePage() {
         <h2 className="mb-4 font-heading text-lg font-semibold text-[#E7E6D9]">
           Account overview
         </h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div className="rounded-xl border border-[#252525] bg-gradient-to-b from-white/[0.04] to-white/[0.01] p-6 text-center">
+        {stats.total === 0 ? (
+          <div className="rounded-xl border border-[#252525] bg-gradient-to-b from-white/[0.04] to-white/[0.01] py-12 text-center">
             <BarChart3
-              className="mx-auto mb-2 h-8 w-8 text-[#4552FF]"
+              className="mx-auto mb-4 h-10 w-10 text-[#333333]"
               strokeWidth={1}
             />
-            <p className="font-heading text-2xl font-bold text-[#E7E6D9]">
-              {stats.total}
+            <p className="text-sm text-[#71717A]">
+              Start optimizing prompts to see your stats here!
             </p>
-            <p className="text-sm text-[#B0B0B0]">Total optimizations</p>
+            <Link
+              href="/app"
+              className="mt-4 inline-block rounded-lg bg-[#4552FF] px-5 py-2.5 text-sm font-semibold text-white hover:opacity-95"
+            >
+              Optimize a prompt
+            </Link>
           </div>
-          <div className="rounded-xl border border-[#252525] bg-gradient-to-b from-white/[0.04] to-white/[0.01] p-6 text-center">
-            <Zap className="mx-auto mb-2 h-8 w-8 text-[#4552FF]" strokeWidth={1} />
-            <p className="font-heading text-2xl font-bold text-[#E7E6D9]">
-              {formatModeLabel(stats.favoriteMode)}
-            </p>
-            <p className="text-sm text-[#B0B0B0]">Favorite mode</p>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="rounded-xl border border-[#252525] bg-gradient-to-b from-white/[0.04] to-white/[0.01] p-6 text-center">
+              <BarChart3
+                className="mx-auto mb-2 h-8 w-8 text-[#4552FF]"
+                strokeWidth={1}
+              />
+              <p className="font-heading text-2xl font-bold text-[#E7E6D9]">
+                {stats.total}
+              </p>
+              <p className="text-sm text-[#B0B0B0]">Total optimizations</p>
+            </div>
+            <div className="rounded-xl border border-[#252525] bg-gradient-to-b from-white/[0.04] to-white/[0.01] p-6 text-center">
+              <Zap className="mx-auto mb-2 h-8 w-8 text-[#4552FF]" strokeWidth={1} />
+              <p className="font-heading text-2xl font-bold text-[#E7E6D9]">
+                {formatModeLabel(stats.favoriteMode)}
+              </p>
+              <p className="text-sm text-[#B0B0B0]">Favorite mode</p>
+            </div>
+            <div className="rounded-xl border border-[#252525] bg-gradient-to-b from-white/[0.04] to-white/[0.01] p-6 text-center">
+              <Clock className="mx-auto mb-2 h-8 w-8 text-[#4552FF]" strokeWidth={1} />
+              <p className="font-heading text-2xl font-bold text-[#E7E6D9]">
+                {formatProviderLabel(stats.favoriteProvider)}
+              </p>
+              <p className="text-sm text-[#B0B0B0]">Most-used provider</p>
+            </div>
           </div>
-          <div className="rounded-xl border border-[#252525] bg-gradient-to-b from-white/[0.04] to-white/[0.01] p-6 text-center">
-            <Clock className="mx-auto mb-2 h-8 w-8 text-[#4552FF]" strokeWidth={1} />
-            <p className="font-heading text-2xl font-bold text-[#E7E6D9]">
-              {formatProviderLabel(stats.favoriteProvider)}
-            </p>
-            <p className="text-sm text-[#B0B0B0]">Most-used provider</p>
-          </div>
-        </div>
+        )}
       </main>
     </div>
   );

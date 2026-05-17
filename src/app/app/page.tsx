@@ -782,7 +782,9 @@ export default function AppPage() {
               afterTextarea={
                 completion && !isLoading ? (
                   <div className="flex flex-wrap items-center gap-3">
-                    {historyId && <ShareButton historyId={historyId} />}
+                    {historyId && (
+                      <ShareButton historyId={historyId} userId={user?.id ?? null} />
+                    )}
                     <SavePromptButton
                       originalPrompt={inputText}
                       optimizedPrompt={getOptimizedPromptText(completion)}
