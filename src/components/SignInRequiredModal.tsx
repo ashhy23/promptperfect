@@ -8,12 +8,15 @@ interface SignInRequiredModalProps {
   onClose: () => void;
   /** Which locked feature triggered the modal — used for copy. */
   feature?: string;
+  /** Override the full modal title. When set, `feature` is ignored for the title. */
+  title?: string;
 }
 
 export function SignInRequiredModal({
   isOpen,
   onClose,
   feature = 'this feature',
+  title,
 }: SignInRequiredModalProps) {
   if (!isOpen) return null;
 
@@ -36,7 +39,7 @@ export function SignInRequiredModal({
               id="sign-in-modal-title"
               className="font-heading text-lg font-semibold text-[#E7E6D9]"
             >
-              Sign in to use {feature}
+              {title ?? `Sign in to use ${feature}`}
             </h2>
             <p className="mt-1.5 text-sm leading-relaxed text-[#888]">
               Create a free account to save your prompt library, view history

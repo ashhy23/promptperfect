@@ -75,7 +75,7 @@ export function ShareButton({ historyId, userId, disabled = false }: ShareButton
       <SignInRequiredModal
         isOpen={showSignInModal}
         onClose={() => setShowSignInModal(false)}
-        feature="the Share feature"
+        title="Sign in to Share"
       />
       <div className="flex flex-col gap-2">
         <button
