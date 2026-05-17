@@ -2,6 +2,8 @@ import { generateText } from 'ai';
 import type { NextRequest } from 'next/server';
 
 import { getSupabaseAdminClient } from '@/lib/client/supabase';
+import { checkRateLimit } from '@/lib/auth/rateLimit';
+import { createRouteHandlerClient } from '@/lib/server/supabase';
 import { splitOptimizedOutput } from '@/lib/delimiter';
 import { normalizeModeForDb, parsePromptScore } from '@/lib/optimization-logs';
 import { userFacingOptimizeError } from '@/lib/optimizeUserError';
@@ -76,6 +78,16 @@ export async function OPTIONS(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const corsHeaders = corsHeadersForRequest(req);
+
+  const ip =
+    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  if (!checkRateLimit(ip, 30)) {
+    return Response.json(
+      { error: 'Too many requests. Please slow down.' },
+      { status: 429, headers: corsHeaders },
+    );
+  }
+
   try {
     const body = (await req.json()) as Partial<OptimizeRequest> & {
       version?: string;
@@ -103,6 +115,20 @@ export async function POST(req: NextRequest) {
     const apiKeyFromBody =
       typeof body.apiKey === 'string' ? body.apiKey.trim() : undefined;
     const apiKey = bearer || apiKeyFromBody;
+
+    // When no BYOK key is supplied the request would use the server's default
+    // API key. Require an authenticated Supabase session in that case to
+    // prevent unauthenticated consumption of server-side quota.
+    if (!apiKey) {
+      const authClient = await createRouteHandlerClient();
+      const { data: { user } } = await authClient.auth.getUser();
+      if (!user) {
+        return Response.json(
+          { error: 'Sign in to use PromptPerfect, or provide your own API key.' },
+          { status: 401, headers: corsHeaders },
+        );
+      }
+    }
 
     let providerConfig;
     try {

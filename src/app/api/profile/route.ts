@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseAdminClient } from '@/lib/client/supabase';
+import { checkRateLimit } from '@/lib/auth/rateLimit';
 import {
   isUniqueViolation,
   mapProfileUniqueViolation,
@@ -102,10 +103,7 @@ export async function GET(request: Request) {
   const db = getDbForIdentity(identity);
   if (!db) {
     return NextResponse.json(
-      {
-        error: 'Server misconfigured',
-        hint: 'Set SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SERVICE_KEY in .env so profiles work with cookie session auth and for reliable database access.',
-      },
+      { error: 'Server misconfigured' },
       { status: 503 },
     );
   }
@@ -125,11 +123,12 @@ export async function GET(request: Request) {
     const msg = selErr.message || '';
     const missing =
       /does not exist|could not find|schema cache|42P01/i.test(msg);
+    console.error('[profile GET select]', msg);
     return NextResponse.json(
       {
         error: missing
           ? 'Database user profiles table is missing.'
-          : selErr.message,
+          : 'Database error',
         hint: missing
           ? 'Run the user profiles migration in the Supabase SQL editor (see supabase/migrations in this repo).'
           : undefined,
@@ -189,12 +188,12 @@ export async function GET(request: Request) {
 
     if (insErr) {
       const fk = /pp_user_profiles_id_fkey|foreign key/i.test(insErr.message);
+      console.error('[profile GET insert]', insErr.message);
       return NextResponse.json(
         {
-          error: insErr.message,
-          hint: fk
+          error: fk
             ? 'Your account id must match Supabase Auth. Log out, log in again, then open Profile.'
-            : 'Ensure migration ran and SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SERVICE_KEY is set.',
+            : 'Could not create profile',
           code: fk ? 'PROFILE_FK_AUTH' : 'PROFILE_INSERT_FAILED',
         },
         { status: fk ? 400 : 500 },
@@ -334,6 +333,15 @@ export async function GET(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  const ip =
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  if (!checkRateLimit(ip, 20)) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please slow down.' },
+      { status: 429 },
+    );
+  }
+
   const identity = await resolveIdentity(request);
   if (!identity) {
     return NextResponse.json(await jsonUnauthorizedDetails(request), {
@@ -377,13 +385,24 @@ export async function PATCH(request: Request) {
     );
   }
 
+  if (display_name !== undefined && display_name.length > 64) {
+    return NextResponse.json(
+      { error: 'Display name must be 64 characters or fewer' },
+      { status: 400 },
+    );
+  }
+
+  if (avatar_url && !/^https:\/\//.test(avatar_url)) {
+    return NextResponse.json(
+      { error: 'Avatar URL must use HTTPS' },
+      { status: 400 },
+    );
+  }
+
   const db = getDbForIdentity(identity);
   if (!db) {
     return NextResponse.json(
-      {
-        error: 'Server misconfigured',
-        hint: 'Set SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SERVICE_KEY to save profile when using app login without a Supabase cookie session.',
-      },
+      { error: 'Server misconfigured' },
       { status: 503 },
     );
   }
@@ -397,7 +416,8 @@ export async function PATCH(request: Request) {
     .maybeSingle();
 
   if (selErr) {
-    return NextResponse.json({ error: selErr.message }, { status: 500 });
+    console.error('[profile PATCH select]', selErr.message);
+    return NextResponse.json({ error: 'Database error' }, { status: 500 });
   }
 
   /** Accounts registered before user_profiles + handle_new_user may have no row; UPDATE alone returned 0 rows. */
@@ -469,7 +489,8 @@ export async function PATCH(request: Request) {
         { status: 409 },
       );
     }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('[profile PATCH upsert]', error.message);
+    return NextResponse.json({ error: 'Database error' }, { status: 500 });
   }
 
   if (!updated) {

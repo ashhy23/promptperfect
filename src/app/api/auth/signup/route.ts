@@ -24,13 +24,9 @@ function looksLikeDuplicateAuthError(message: string): boolean {
 
 function clarifySignupError(message: string): string {
   if (message.includes('Database error creating new user')) {
-    return (
-      'Could not create your account (auth database error). ' +
-      'If this keeps happening, open Supabase Dashboard → Database and check for triggers ' +
-      'on auth.users that insert into public tables; fix or remove the broken trigger.'
-    )
+    return 'Could not create your account due to a server error. Please try again later.'
   }
-  return message
+  return 'Sign up failed. Please try again.'
 }
 
 export async function POST(request: Request) {
@@ -173,8 +169,9 @@ export async function POST(request: Request) {
     api_key: '',
   })
   if (insertErr && insertErr.code !== '23505') {
+    console.error('[signup insert pp_users]', insertErr.message)
     return NextResponse.json(
-      { error: insertErr.message || 'Could not create profile' },
+      { error: 'Could not create profile' },
       { status: 500 },
     )
   }
